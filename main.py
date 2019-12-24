@@ -41,6 +41,67 @@ def showNCC():
     plt.show()
 
 
+# https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_feature2d/py_matcher/py_matcher.html
+def showKeypoints():
+    img1 = cv2.imread('resources/Aerial1.jpg', 0)
+    img2 = cv2.imread('resources/Aerial2.jpg', 0)
+
+    # Initiate SIFT detector
+    orb = cv2.ORB_create()
+
+    # find the keypoints and descriptors with SIFT
+    kp1, des1 = orb.detectAndCompute(img1, None)
+    kp2, des2 = orb.detectAndCompute(img2, None)
+
+    # create BFMatcher object
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    # Match descriptors.
+    matches = bf.match(des1, des2)
+
+    # Sort them in the order of their distance.
+    matches = sorted(matches, key=lambda x: x.distance)
+
+    img1 = cv2.drawKeypoints(img1, [kp1[i.queryIdx] for i in matches[:6]], None)
+    cv2.imwrite('output/FeatureAerial1.jpg', img1)
+    img2 = cv2.drawKeypoints(img2, [kp2[i.trainIdx] for i in matches[:6]], None)
+    cv2.imwrite('output/FeatureAerial2.jpg', img2)
+
+    plt.figure(figsize=(4, 6))
+    plt.xticks([]), plt.yticks([])
+    plt.imshow(img1), plt.show()
+    plt.figure(figsize=(4, 6))
+    plt.xticks([]), plt.yticks([])
+    plt.imshow(img2), plt.show()
+
+
+def showMatchedKeypoints():
+    img1 = cv2.imread('resources/Aerial1.jpg', 0)
+    img2 = cv2.imread('resources/Aerial2.jpg', 0)
+
+    # Initiate SIFT detector
+    orb = cv2.ORB_create()
+
+    # find the keypoints and descriptors with SIFT
+    kp1, des1 = orb.detectAndCompute(img1, None)
+    kp2, des2 = orb.detectAndCompute(img2, None)
+
+    # create BFMatcher object
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    # Match descriptors.
+    matches = bf.match(des1, des2)
+
+    # Sort them in the order of their distance.
+    matches = sorted(matches, key=lambda x: x.distance)
+
+    # Draw first 6 matches.
+    img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:6], None, flags=2)
+
+    plt.figure(figsize=(8, 6))
+    plt.xticks([]), plt.yticks([])
+    plt.imshow(img3), plt.show()
+
 
 if __name__ == '__main__':
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(
@@ -52,6 +113,8 @@ if __name__ == '__main__':
 
     ui.pushButton.clicked.connect(showDisparity)
     ui.pushButton_2.clicked.connect(showNCC)
+    ui.pushButton_3.clicked.connect(showKeypoints)
+    ui.pushButton_4.clicked.connect(showMatchedKeypoints)
 
     Widget.show()
     sys.exit(app.exec_())
