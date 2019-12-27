@@ -47,24 +47,18 @@ def showKeypoints():
     img2 = cv2.imread('resources/Aerial2.jpg', 0)
 
     # Initiate SIFT detector
-    orb = cv2.ORB_create()
+    sift = cv2.xfeatures2d_SIFT.create()
 
     # find the keypoints and descriptors with SIFT
-    kp1, des1 = orb.detectAndCompute(img1, None)
-    kp2, des2 = orb.detectAndCompute(img2, None)
+    kp1, des1 = sift.detectAndCompute(img1, None)
+    kp2, des2 = sift.detectAndCompute(img2, None)
 
-    # create BFMatcher object
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    kp1 = sorted(kp1, key=lambda x: x.size, reverse=True)[:7]
+    kp2 = sorted(kp2, key=lambda x: x.size, reverse=True)[:7]
 
-    # Match descriptors.
-    matches = bf.match(des1, des2)
-
-    # Sort them in the order of their distance.
-    matches = sorted(matches, key=lambda x: x.distance)
-
-    img1 = cv2.drawKeypoints(img1, [kp1[i.queryIdx] for i in matches[:6]], None)
+    img1 = cv2.drawKeypoints(img1, kp1, None, (0, 255, 0))
     cv2.imwrite('output/FeatureAerial1.jpg', img1)
-    img2 = cv2.drawKeypoints(img2, [kp2[i.trainIdx] for i in matches[:6]], None)
+    img2 = cv2.drawKeypoints(img2, kp2, None, (0, 255, 0))
     cv2.imwrite('output/FeatureAerial2.jpg', img2)
 
     plt.figure(figsize=(4, 6))
@@ -78,25 +72,36 @@ def showKeypoints():
 def showMatchedKeypoints():
     img1 = cv2.imread('resources/Aerial1.jpg', 0)
     img2 = cv2.imread('resources/Aerial2.jpg', 0)
+    img1_f = cv2.imread('output/FeatureAerial1.jpg')
+    img2_f = cv2.imread('output/FeatureAerial2.jpg')
 
     # Initiate SIFT detector
-    orb = cv2.ORB_create()
+    sift = cv2.xfeatures2d_SIFT.create()
 
     # find the keypoints and descriptors with SIFT
-    kp1, des1 = orb.detectAndCompute(img1, None)
-    kp2, des2 = orb.detectAndCompute(img2, None)
+    kp1, des1 = zip(*[(kp, des) for kp, des in sorted(zip(*sift.detectAndCompute(
+        img1, None)), key=lambda pair: pair[0].size, reverse=True)])
+    kp2, des2 = zip(*[(kp, des) for kp, des in sorted(zip(*sift.detectAndCompute(
+        img2, None)), key=lambda pair: pair[0].size, reverse=True)])
 
-    # create BFMatcher object
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    kp1 = np.asarray(kp1[:7])
+    des1 = np.asarray(des1[:7])
+    kp2 = np.asarray(kp2[:7])
+    des2 = np.asarray(des2[:7])
 
-    # Match descriptors.
-    matches = bf.match(des1, des2)
+    # BFMatcher with default params
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(des1, des2, k=2)
 
-    # Sort them in the order of their distance.
-    matches = sorted(matches, key=lambda x: x.distance)
+    # Apply ratio test
+    good = []
+    for m, n in matches[:7]:
+        if m.distance < .75 * n.distance:
+            good.append([m])
 
-    # Draw first 6 matches.
-    img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:6], None, flags=2)
+    # cv2.drawMatchesKnn expects list of lists as matches.
+    img3 = cv2.drawMatchesKnn(
+        img1_f, kp1, img2_f, kp2, good, None, (0, 255, 0), flags=2)
 
     plt.figure(figsize=(8, 6))
     plt.xticks([]), plt.yticks([])
